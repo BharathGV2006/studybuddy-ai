@@ -1,14 +1,13 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Outlet,
   createRootRoute,
   createRoute,
   createRouter,
+  redirect,
 } from "@tanstack/react-router";
-import Layout from "./components/Layout";
-
-import { Skeleton } from "@/components/ui/skeleton";
-// Lazy imports for pages
 import { Suspense, lazy } from "react";
+import Layout from "./components/Layout";
 
 const OnboardingPage = lazy(() => import("./pages/Onboarding"));
 const DashboardPage = lazy(() => import("./pages/Dashboard"));
@@ -16,6 +15,12 @@ const AnalyticsPage = lazy(() => import("./pages/Analytics"));
 const ResourcesPage = lazy(() => import("./pages/Resources"));
 const ResourceDetailPage = lazy(() => import("./pages/ResourceDetail"));
 const FlashcardsPage = lazy(() => import("./pages/Flashcards"));
+const LoginPage = lazy(() => import("./pages/Login"));
+const SignupPage = lazy(() => import("./pages/Signup"));
+
+function isAuthenticated() {
+  return !!localStorage.getItem("sb_auth_email");
+}
 
 function PageLoader() {
   return (
@@ -31,7 +36,6 @@ function PageLoader() {
   );
 }
 
-// Single root — just renders Outlet for all routes
 const rootRoute = createRootRoute({
   component: () => (
     <Suspense fallback={<PageLoader />}>
@@ -40,17 +44,42 @@ const rootRoute = createRootRoute({
   ),
 });
 
-// Full-screen onboarding — no Layout shell
+// Public routes (no auth required)
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  beforeLoad: () => {
+    if (isAuthenticated()) throw redirect({ to: "/dashboard" });
+  },
+  component: LoginPage,
+});
+
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/signup",
+  beforeLoad: () => {
+    if (isAuthenticated()) throw redirect({ to: "/dashboard" });
+  },
+  component: SignupPage,
+});
+
+// Full-screen onboarding — requires auth
 const onboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/onboarding",
+  beforeLoad: () => {
+    if (!isAuthenticated()) throw redirect({ to: "/login" });
+  },
   component: OnboardingPage,
 });
 
-// Layout shell route — wraps all app routes with header/nav
+// Protected layout shell — wraps all app routes with header/nav
 const layoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "layout",
+  beforeLoad: () => {
+    if (!isAuthenticated()) throw redirect({ to: "/login" });
+  },
   component: () => (
     <Layout>
       <Suspense fallback={<PageLoader />}>
@@ -97,6 +126,8 @@ const flashcardsRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  loginRoute,
+  signupRoute,
   onboardingRoute,
   layoutRoute.addChildren([
     indexRoute,

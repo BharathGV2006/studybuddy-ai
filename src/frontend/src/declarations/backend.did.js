@@ -8,6 +8,14 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const ChatMessage = IDL.Record({
+  'content' : IDL.Text,
+  'role' : IDL.Text,
+});
+export const AskGeminiResult = IDL.Variant({
+  'ok' : IDL.Text,
+  'err' : IDL.Text,
+});
 export const ResourceId = IDL.Nat;
 export const Flashcard = IDL.Record({
   'id' : ResourceId,
@@ -81,6 +89,17 @@ export const StudySessionInput = IDL.Record({
   'aiAssisted' : IDL.Bool,
   'durationSeconds' : IDL.Nat,
 });
+export const AuthError = IDL.Variant({
+  'EmailAlreadyExists' : IDL.Null,
+  'InvalidCredentials' : IDL.Null,
+  'NotAuthenticated' : IDL.Null,
+  'InternalError' : IDL.Text,
+});
+export const LoginResult = IDL.Variant({ 'ok' : IDL.Null, 'err' : AuthError });
+export const RegisterResult = IDL.Variant({
+  'ok' : IDL.Null,
+  'err' : AuthError,
+});
 export const UserProfileInput = IDL.Record({
   'name' : IDL.Text,
   'onboardingComplete' : IDL.Bool,
@@ -88,6 +107,11 @@ export const UserProfileInput = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  'askGemini' : IDL.Func(
+      [IDL.Vec(ChatMessage), IDL.Text],
+      [AskGeminiResult],
+      [],
+    ),
   'createDeck' : IDL.Func([FlashcardDeckInput], [FlashcardDeck], []),
   'createStudySet' : IDL.Func([StudySetInput], [StudySet], []),
   'deleteDeck' : IDL.Func([ResourceId], [IDL.Bool], []),
@@ -100,6 +124,9 @@ export const idlService = IDL.Service({
   'listSessions' : IDL.Func([], [IDL.Vec(StudySession)], ['query']),
   'listStudySets' : IDL.Func([], [IDL.Vec(StudySet)], ['query']),
   'logSession' : IDL.Func([StudySessionInput], [StudySession], []),
+  'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
+  'logout' : IDL.Func([], [], []),
+  'register' : IDL.Func([IDL.Text, IDL.Text], [RegisterResult], []),
   'updateDeck' : IDL.Func(
       [ResourceId, FlashcardDeckInput],
       [IDL.Opt(FlashcardDeck)],
@@ -116,6 +143,8 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const ChatMessage = IDL.Record({ 'content' : IDL.Text, 'role' : IDL.Text });
+  const AskGeminiResult = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text });
   const ResourceId = IDL.Nat;
   const Flashcard = IDL.Record({
     'id' : ResourceId,
@@ -189,6 +218,14 @@ export const idlFactory = ({ IDL }) => {
     'aiAssisted' : IDL.Bool,
     'durationSeconds' : IDL.Nat,
   });
+  const AuthError = IDL.Variant({
+    'EmailAlreadyExists' : IDL.Null,
+    'InvalidCredentials' : IDL.Null,
+    'NotAuthenticated' : IDL.Null,
+    'InternalError' : IDL.Text,
+  });
+  const LoginResult = IDL.Variant({ 'ok' : IDL.Null, 'err' : AuthError });
+  const RegisterResult = IDL.Variant({ 'ok' : IDL.Null, 'err' : AuthError });
   const UserProfileInput = IDL.Record({
     'name' : IDL.Text,
     'onboardingComplete' : IDL.Bool,
@@ -196,6 +233,11 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    'askGemini' : IDL.Func(
+        [IDL.Vec(ChatMessage), IDL.Text],
+        [AskGeminiResult],
+        [],
+      ),
     'createDeck' : IDL.Func([FlashcardDeckInput], [FlashcardDeck], []),
     'createStudySet' : IDL.Func([StudySetInput], [StudySet], []),
     'deleteDeck' : IDL.Func([ResourceId], [IDL.Bool], []),
@@ -208,6 +250,9 @@ export const idlFactory = ({ IDL }) => {
     'listSessions' : IDL.Func([], [IDL.Vec(StudySession)], ['query']),
     'listStudySets' : IDL.Func([], [IDL.Vec(StudySet)], ['query']),
     'logSession' : IDL.Func([StudySessionInput], [StudySession], []),
+    'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
+    'logout' : IDL.Func([], [], []),
+    'register' : IDL.Func([IDL.Text, IDL.Text], [RegisterResult], []),
     'updateDeck' : IDL.Func(
         [ResourceId, FlashcardDeckInput],
         [IDL.Opt(FlashcardDeck)],

@@ -30,7 +30,34 @@ export interface FlashcardDeck {
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
+export type AuthError = {
+    __kind__: "EmailAlreadyExists";
+    EmailAlreadyExists: null;
+} | {
+    __kind__: "InvalidCredentials";
+    InvalidCredentials: null;
+} | {
+    __kind__: "NotAuthenticated";
+    NotAuthenticated: null;
+} | {
+    __kind__: "InternalError";
+    InternalError: string;
+};
+export type AskGeminiResult = {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+};
 export type UserId = Principal;
+export type RegisterResult = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: AuthError;
+};
 export interface FlashcardDeckInput {
     title: string;
     subject: string;
@@ -57,6 +84,10 @@ export interface Flashcard {
     question: string;
     answer: string;
 }
+export interface ChatMessage {
+    content: string;
+    role: string;
+}
 export interface StudySession {
     id: ResourceId;
     startedAt: Timestamp;
@@ -65,6 +96,13 @@ export interface StudySession {
     aiAssisted: boolean;
     durationSeconds: bigint;
 }
+export type LoginResult = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: AuthError;
+};
 export type ResourceId = bigint;
 export interface UserProfileInput {
     name: string;
@@ -86,6 +124,7 @@ export interface UserProfile {
     studyGoals: Array<string>;
 }
 export interface backendInterface {
+    askGemini(history: Array<ChatMessage>, message: string): Promise<AskGeminiResult>;
     createDeck(input: FlashcardDeckInput): Promise<FlashcardDeck>;
     createStudySet(input: StudySetInput): Promise<StudySet>;
     deleteDeck(id: ResourceId): Promise<boolean>;
@@ -98,6 +137,9 @@ export interface backendInterface {
     listSessions(): Promise<Array<StudySession>>;
     listStudySets(): Promise<Array<StudySet>>;
     logSession(input: StudySessionInput): Promise<StudySession>;
+    login(email: string, password: string): Promise<LoginResult>;
+    logout(): Promise<void>;
+    register(email: string, password: string): Promise<RegisterResult>;
     updateDeck(id: ResourceId, input: FlashcardDeckInput): Promise<FlashcardDeck | null>;
     updateStudySet(id: ResourceId, input: StudySetInput): Promise<StudySet | null>;
     upsertProfile(input: UserProfileInput): Promise<UserProfile>;

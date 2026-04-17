@@ -78,12 +78,59 @@ actor {
         Map__605269027<UserId__158757552,
                         List__415060402<StudySession__723445788>>
     };
+  stable authState :
+    {
+      credentials : Map__605269027<Text, Text>;
+      emailToPrincipal : Map__605269027<Text, Principal>;
+      sessions : Map__605269027<Principal, Text>
+    };
   stable flashcardsState :
     {
       decks :
         Map__605269027<UserId__158757552,
                         List__415060402<FlashcardDeck__935897009>>;
       var nextId : ResourceId__712276042
+    };
+  stable geminiApiKey : Text;
+  stable geminiModel : Text;
+  stable ic :
+    actor {
+      http_request :
+        shared {
+                 body : ?Blob;
+                 headers : [{name : Text; value : Text}];
+                 is_replicated : ?Bool;
+                 max_response_bytes : ?Nat64;
+                 method : {#get; #head; #post};
+                 transform :
+                   ?{
+                      context : Blob;
+                      function :
+                        shared query {
+                                       context : Blob;
+                                       response :
+                                         {
+                                           body : Blob;
+                                           headers :
+                                             [{name : Text; value : Text}];
+                                           status : Nat
+                                         }
+                                     } ->
+                          async
+                            {
+                              body : Blob;
+                              headers : [{name : Text; value : Text}];
+                              status : Nat
+                            }
+                    };
+                 url : Text
+               } ->
+          async
+            {
+              body : Blob;
+              headers : [{name : Text; value : Text}];
+              status : Nat
+            }
     };
   stable profilesState :
     {profiles : Map__605269027<UserId__158757552, UserProfile__190304746>};

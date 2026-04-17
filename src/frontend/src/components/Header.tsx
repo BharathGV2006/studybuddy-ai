@@ -1,22 +1,45 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
-import { Bell, GraduationCap } from "lucide-react";
-import { mockUserProfile } from "../data/mockData";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Bell, GraduationCap, LogOut } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
 import SmartSearch from "./SmartSearch";
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+function getInitials(email: string) {
+  const parts = email.split("@")[0].split(/[._-]/);
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 export default function Header() {
-  const profile = mockUserProfile;
-  const initials = getInitials(profile.name);
+  const { currentUserEmail, logout } = useAuth();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const displayEmail = currentUserEmail ?? "User";
+  const initials = getInitials(displayEmail);
+  const displayName = displayEmail.split("@")[0];
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    await logout();
+    navigate({ to: "/login" });
+  };
+
+  // Close menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   return (
     <header
@@ -26,7 +49,7 @@ export default function Header() {
       )}
       data-ocid="header"
     >
-      {/* Logo + Brand — visible on mobile, hidden on desktop (desktop shows in rail) */}
+      {/* Logo + Brand */}
       <Link
         to="/dashboard"
         className={cn(
@@ -69,25 +92,63 @@ export default function Header() {
           />
         </button>
 
-        {/* User avatar */}
-        <button
-          type="button"
-          className={cn(
-            "flex items-center gap-2 px-2 py-1 rounded-lg transition-smooth",
-            "hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        {/* User menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            className={cn(
+              "flex items-center gap-2 px-2 py-1 rounded-lg transition-smooth",
+              "hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+            data-ocid="header.user_menu_button"
+            aria-label={`User menu for ${displayName}`}
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+          >
+            <Avatar className="w-7 h-7 ring-1 ring-border">
+              <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-semibold">
+                {initials || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="hidden sm:block text-sm font-medium text-foreground max-w-[100px] truncate">
+              {displayName}
+            </span>
+          </button>
+
+          {/* Dropdown */}
+          {menuOpen && (
+            <div
+              className="absolute right-0 mt-1 w-52 rounded-xl border border-border bg-popover shadow-xl overflow-hidden z-50"
+              data-ocid="header.user_menu"
+              role="menu"
+              style={{ boxShadow: "0 8px 24px oklch(0 0 0 / 0.5)" }}
+            >
+              <div className="px-3 py-2.5 border-b border-border">
+                <p className="text-xs font-medium text-foreground truncate">
+                  {displayName}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {displayEmail}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                data-ocid="header.logout_button"
+                role="menuitem"
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-smooth",
+                  "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+                  "focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                <LogOut size={14} />
+                Sign out
+              </button>
+            </div>
           )}
-          data-ocid="header.user_menu_button"
-          aria-label={`User menu for ${profile.name}`}
-        >
-          <Avatar className="w-7 h-7 ring-1 ring-border">
-            <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <span className="hidden sm:block text-sm font-medium text-foreground max-w-[100px] truncate">
-            {profile.name.split(" ")[0]}
-          </span>
-        </button>
+        </div>
       </div>
     </header>
   );

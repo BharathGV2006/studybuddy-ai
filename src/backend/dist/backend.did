@@ -50,12 +50,22 @@ type StudySession =
    subject: text;
  };
 type ResourceId = nat;
+type RegisterResult = 
+ variant {
+   err: AuthError;
+   ok;
+ };
 type QuizQuestion = 
  record {
    correctIndex: nat;
    id: ResourceId;
    options: vec text;
    question: text;
+ };
+type LoginResult = 
+ variant {
+   err: AuthError;
+   ok;
  };
 type FlashcardDeckInput = 
  record {
@@ -79,6 +89,23 @@ type Flashcard =
    id: ResourceId;
    question: text;
  };
+type ChatMessage = 
+ record {
+   content: text;
+   role: text;
+ };
+type AuthError = 
+ variant {
+   EmailAlreadyExists;
+   InternalError: text;
+   InvalidCredentials;
+   NotAuthenticated;
+ };
+type AskGeminiResult = 
+ variant {
+   err: text;
+   ok: text;
+ };
 type AnalyticsSummary = 
  record {
    aiAssistedSeconds: nat;
@@ -88,6 +115,7 @@ type AnalyticsSummary =
    totalSessions: nat;
  };
 service : {
+  askGemini: (history: vec ChatMessage, message: text) -> (AskGeminiResult);
   createDeck: (input: FlashcardDeckInput) -> (FlashcardDeck);
   createStudySet: (input: StudySetInput) -> (StudySet);
   deleteDeck: (id: ResourceId) -> (bool);
@@ -100,6 +128,9 @@ service : {
   listSessions: () -> (vec StudySession) query;
   listStudySets: () -> (vec StudySet) query;
   logSession: (input: StudySessionInput) -> (StudySession);
+  login: (email: text, password: text) -> (LoginResult);
+  logout: () -> ();
+  register: (email: text, password: text) -> (RegisterResult);
   updateDeck: (id: ResourceId, input: FlashcardDeckInput) ->
    (opt FlashcardDeck);
   updateStudySet: (id: ResourceId, input: StudySetInput) -> (opt StudySet);

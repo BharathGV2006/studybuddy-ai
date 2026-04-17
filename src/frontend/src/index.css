@@ -149,4 +149,63 @@
   .glow-indigo {
     box-shadow: 0 8px 24px oklch(0.62 0.18 270 / 0.2);
   }
+
+  /* Ambient glow blobs on auth pages */
+  .auth-glow-indigo {
+    background: oklch(0.62 0.18 270);
+  }
+  .auth-glow-violet {
+    background: oklch(0.55 0.15 260);
+  }
+
+  /* Password strength bar colors */
+  .strength-weak {
+    background: oklch(0.6 0.22 25);
+    color: oklch(0.6 0.22 25);
+  }
+  .strength-fair {
+    background: oklch(0.72 0.2 60);
+    color: oklch(0.72 0.2 60);
+  }
+  .strength-good {
+    background: oklch(0.72 0.18 150);
+    color: oklch(0.72 0.18 150);
+  }
+  .strength-strong {
+    background: oklch(0.72 0.18 150);
+    color: oklch(0.72 0.18 150);
+  }
+  .strength-empty {
+    background: oklch(0.28 0.02 260);
+  }
+
+  /* Auth card / logo box surfaces */
+  .auth-logo-box {
+    background: oklch(0.62 0.18 270 / 0.15);
+    border: 1px solid oklch(0.62 0.18 270 / 0.3);
+    box-shadow: 0 0 24px oklch(0.62 0.18 270 / 0.25);
+  }
+  .auth-icon-color {
+    color: oklch(0.72 0.18 270);
+  }
+  .auth-card {
+    background: oklch(0.18 0.014 260 / 0.9);
+    border: 1px solid oklch(0.28 0.02 260 / 0.7);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.4);
+  }
+  .auth-btn-primary {
+    background: oklch(0.62 0.18 270);
+    color: oklch(0.145 0.014 270);
+    box-shadow: 0 4px 16px oklch(0.62 0.18 270 / 0.35);
+  }
+  .auth-btn-primary-loading {
+    background: oklch(0.62 0.18 270);
+    color: oklch(0.145 0.014 270);
+  }
+  .auth-error {
+    background: oklch(0.55 0.2 25 / 0.12);
+    border: 1px solid oklch(0.55 0.2 25 / 0.3);
+    color: oklch(0.75 0.15 25);
+  }
 }

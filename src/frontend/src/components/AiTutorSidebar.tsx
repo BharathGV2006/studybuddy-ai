@@ -1,7 +1,18 @@
 import { cn } from "@/lib/utils";
-import { Bot, ChevronRight, Paperclip, Send, Sparkles, X } from "lucide-react";
+import { useActor } from "@caffeineai/core-infrastructure";
+import {
+  AlertCircle,
+  Bot,
+  ChevronRight,
+  Paperclip,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createActor } from "../backend";
+import type { ChatMessage } from "../backend.d.ts";
 
 interface Message {
   id: string;
@@ -11,82 +22,8 @@ interface Message {
   hasCode?: boolean;
   codeSnippet?: string;
   codeLanguage?: string;
+  isError?: boolean;
 }
-
-// Mock AI responses cycling through different scenarios
-const AI_RESPONSES: Message[] = [
-  {
-    id: "r1",
-    role: "ai",
-    text: "Great question! A **closure** is a function that retains access to variables from its outer (enclosing) scope even after the outer function has returned. Here's a simple example:",
-    timestamp: "",
-    hasCode: true,
-    codeLanguage: "javascript",
-    codeSnippet: `function makeCounter() {
-  let count = 0;
-  return function() {
-    count++;
-    return count;
-  };
-}
-const counter = makeCounter();
-console.log(counter()); // 1
-console.log(counter()); // 2`,
-  },
-  {
-    id: "r2",
-    role: "ai",
-    text: "The gradient descent algorithm can be expressed mathematically. For a parameter $\\theta$, the update rule is $\\theta = \\theta - \\alpha \\nabla J(\\theta)$ where $\\alpha$ is the learning rate and $\\nabla J(\\theta)$ is the gradient of the cost function.",
-    timestamp: "",
-    hasCode: true,
-    codeLanguage: "python",
-    codeSnippet: `def gradient_descent(X, y, learning_rate=0.01, iterations=1000):
-    m = len(y)
-    theta = np.zeros(X.shape[1])
-    for _ in range(iterations):
-        predictions = X.dot(theta)
-        errors = predictions - y
-        gradient = X.T.dot(errors) / m
-        theta -= learning_rate * gradient
-    return theta`,
-  },
-  {
-    id: "r3",
-    role: "ai",
-    text: "The time complexity of different sorting algorithms varies significantly. QuickSort averages $O(n \\log n)$, while BubbleSort is $O(n^2)$. For your technical interview prep, focus on: Merge Sort $O(n \\log n)$ guaranteed, and HeapSort for in-place $O(n \\log n)$.",
-    timestamp: "",
-  },
-  {
-    id: "r4",
-    role: "ai",
-    text: "Integration by parts uses the formula $\\int u \\, dv = uv - \\int v \\, du$. The key is choosing $u$ and $dv$ wisely using the LIATE rule: **L**ogarithmic, **I**nverse trig, **A**lgebraic, **T**rigonometric, **E**xponential.",
-    timestamp: "",
-    hasCode: true,
-    codeLanguage: "math",
-    codeSnippet: `Example: ∫ x·eˣ dx
-  Let u = x,      dv = eˣ dx
-  Then du = dx,   v = eˣ
-  
-  = x·eˣ - ∫ eˣ dx
-  = x·eˣ - eˣ + C
-  = eˣ(x - 1) + C`,
-  },
-  {
-    id: "r5",
-    role: "ai",
-    text: "React's reconciliation algorithm (Fiber) compares virtual DOM trees using a diffing strategy. Key rules: components of the same type preserve state, different types unmount/remount. The $O(n)$ algorithm assumes stable keys in lists.",
-    timestamp: "",
-    hasCode: true,
-    codeLanguage: "typescript",
-    codeSnippet: `// Always use stable keys for lists
-const items = data.map((item) => (
-  <ListItem
-    key={item.id}  // stable, not index!
-    data={item}
-  />
-));`,
-  },
-];
 
 function renderTextWithLatex(text: string) {
   const parts = text.split(/(\$[^$]+\$|\*\*[^*]+\*\*)/g);
@@ -122,34 +59,56 @@ function getTimestamp() {
   });
 }
 
+/** Detect if message text has a code block (``` fenced) */
+function parseCodeBlock(text: string): {
+  text: string;
+  codeSnippet?: string;
+  codeLanguage?: string;
+  hasCode?: boolean;
+} {
+  const match = text.match(/```(\w*)\n?([\s\S]*?)```/);
+  if (!match) return { text };
+  const lang = match[1] || "code";
+  const code = match[2].trim();
+  const cleanText = text.replace(/```[\s\S]*?```/, "").trim();
+  return {
+    text: cleanText,
+    hasCode: true,
+    codeSnippet: code,
+    codeLanguage: lang,
+  };
+}
+
 interface AiTutorSidebarProps {
   open: boolean;
   onClose: () => void;
 }
 
 export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
+  const { actor } = useActor(createActor);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "ai",
-      text: "Hi! I'm your AI tutor. Ask me anything about your study materials — I can explain concepts, help with problems, and walk you through examples.",
+      text: "Hi! I'm your AI tutor powered by Gemini. Ask me anything about your study materials — I can explain concepts, help with problems, and walk you through examples.",
       timestamp: getTimestamp(),
     },
   ]);
   const [input, setInput] = useState("");
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
-  const responseIndexRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  const messagesRef = useRef<Message[]>(messages);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Scroll when messages update or sidebar opens
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  });
 
   useEffect(() => {
     if (open) {
@@ -168,24 +127,60 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    const currentInput = input.trim();
     setInput("");
     setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
+    try {
+      if (!actor) throw new Error("Service unavailable");
 
-    const responseTemplate =
-      AI_RESPONSES[responseIndexRef.current % AI_RESPONSES.length];
-    responseIndexRef.current++;
+      // Build history from existing messages (excluding welcome)
+      const history: ChatMessage[] = messagesRef.current
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({
+          role: m.role === "user" ? "user" : "model",
+          content: m.text,
+        }));
 
-    const aiMsg: Message = {
-      ...responseTemplate,
-      id: `a-${Date.now()}`,
-      timestamp: getTimestamp(),
-    };
+      const result = await actor.askGemini(history, currentInput);
 
-    setMessages((prev) => [...prev, aiMsg]);
-    setLoading(false);
-  }, [input, loading]);
+      if (result.__kind__ === "ok") {
+        const parsed = parseCodeBlock(result.ok);
+        const aiMsg: Message = {
+          id: `a-${Date.now()}`,
+          role: "ai",
+          text: parsed.text || result.ok,
+          timestamp: getTimestamp(),
+          hasCode: parsed.hasCode,
+          codeSnippet: parsed.codeSnippet,
+          codeLanguage: parsed.codeLanguage,
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+      } else {
+        const errMsg: Message = {
+          id: `err-${Date.now()}`,
+          role: "ai",
+          text:
+            result.err || "Sorry, I couldn't get a response. Please try again.",
+          timestamp: getTimestamp(),
+          isError: true,
+        };
+        setMessages((prev) => [...prev, errMsg]);
+      }
+    } catch {
+      const errMsg: Message = {
+        id: `err-${Date.now()}`,
+        role: "ai",
+        text: "Network error. Please check your connection and try again.",
+        timestamp: getTimestamp(),
+        isError: true,
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, loading, actor]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -212,9 +207,7 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
           {/* Header */}
           <div
             className="flex items-center gap-2.5 px-4 py-3 border-b border-border"
-            style={{
-              background: "oklch(0.18 0.014 260 / 0.95)",
-            }}
+            style={{ background: "oklch(0.18 0.014 260 / 0.95)" }}
           >
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -231,7 +224,7 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
                 AI Tutor
               </p>
               <p className="text-[11px] text-muted-foreground">
-                Always ready to help
+                Powered by Gemini
               </p>
             </div>
             <button
@@ -265,16 +258,27 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
                   msg.role === "user" ? "justify-end" : "justify-start",
                 )}
               >
-                {/* AI avatar */}
                 {msg.role === "ai" && (
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                     style={{
-                      background: "oklch(0.62 0.18 270 / 0.2)",
-                      border: "1px solid oklch(0.62 0.18 270 / 0.3)",
+                      background: msg.isError
+                        ? "oklch(0.55 0.2 25 / 0.2)"
+                        : "oklch(0.62 0.18 270 / 0.2)",
+                      border: `1px solid ${msg.isError ? "oklch(0.55 0.2 25 / 0.3)" : "oklch(0.62 0.18 270 / 0.3)"}`,
                     }}
                   >
-                    <Bot size={12} style={{ color: "oklch(0.72 0.18 270)" }} />
+                    {msg.isError ? (
+                      <AlertCircle
+                        size={12}
+                        style={{ color: "oklch(0.72 0.15 25)" }}
+                      />
+                    ) : (
+                      <Bot
+                        size={12}
+                        style={{ color: "oklch(0.72 0.18 270)" }}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -291,7 +295,12 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
                           background: "oklch(0.62 0.18 270)",
                           boxShadow: "0 2px 8px oklch(0.62 0.18 270 / 0.3)",
                         }
-                      : undefined
+                      : msg.isError
+                        ? {
+                            background: "oklch(0.55 0.2 25 / 0.08)",
+                            border: "1px solid oklch(0.55 0.2 25 / 0.2)",
+                          }
+                        : undefined
                   }
                 >
                   <p className="leading-relaxed text-[13px]">
@@ -416,7 +425,6 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
                 )}
               />
               <div className="flex items-center justify-between px-2 pb-2">
-                {/* File upload (UX only) */}
                 <button
                   type="button"
                   data-ocid="ai_sidebar.upload_button"
@@ -431,7 +439,6 @@ export default function AiTutorSidebar({ open, onClose }: AiTutorSidebarProps) {
                   <Paperclip size={14} />
                 </button>
 
-                {/* Send */}
                 <button
                   type="button"
                   onClick={handleSend}

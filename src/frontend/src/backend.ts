@@ -112,7 +112,34 @@ export interface FlashcardDeck {
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
+export type AuthError = {
+    __kind__: "EmailAlreadyExists";
+    EmailAlreadyExists: null;
+} | {
+    __kind__: "InvalidCredentials";
+    InvalidCredentials: null;
+} | {
+    __kind__: "NotAuthenticated";
+    NotAuthenticated: null;
+} | {
+    __kind__: "InternalError";
+    InternalError: string;
+};
+export type AskGeminiResult = {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+};
 export type UserId = Principal;
+export type RegisterResult = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: AuthError;
+};
 export interface FlashcardDeckInput {
     title: string;
     subject: string;
@@ -139,6 +166,10 @@ export interface Flashcard {
     question: string;
     answer: string;
 }
+export interface ChatMessage {
+    content: string;
+    role: string;
+}
 export interface StudySession {
     id: ResourceId;
     startedAt: Timestamp;
@@ -147,6 +178,13 @@ export interface StudySession {
     aiAssisted: boolean;
     durationSeconds: bigint;
 }
+export type LoginResult = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: AuthError;
+};
 export type ResourceId = bigint;
 export interface UserProfileInput {
     name: string;
@@ -168,6 +206,7 @@ export interface UserProfile {
     studyGoals: Array<string>;
 }
 export interface backendInterface {
+    askGemini(history: Array<ChatMessage>, message: string): Promise<AskGeminiResult>;
     createDeck(input: FlashcardDeckInput): Promise<FlashcardDeck>;
     createStudySet(input: StudySetInput): Promise<StudySet>;
     deleteDeck(id: ResourceId): Promise<boolean>;
@@ -180,13 +219,30 @@ export interface backendInterface {
     listSessions(): Promise<Array<StudySession>>;
     listStudySets(): Promise<Array<StudySet>>;
     logSession(input: StudySessionInput): Promise<StudySession>;
+    login(email: string, password: string): Promise<LoginResult>;
+    logout(): Promise<void>;
+    register(email: string, password: string): Promise<RegisterResult>;
     updateDeck(id: ResourceId, input: FlashcardDeckInput): Promise<FlashcardDeck | null>;
     updateStudySet(id: ResourceId, input: StudySetInput): Promise<StudySet | null>;
     upsertProfile(input: UserProfileInput): Promise<UserProfile>;
 }
-import type { FlashcardDeck as _FlashcardDeck, StudySet as _StudySet, UserProfile as _UserProfile } from "./declarations/backend.did.d.ts";
+import type { AskGeminiResult as _AskGeminiResult, AuthError as _AuthError, FlashcardDeck as _FlashcardDeck, LoginResult as _LoginResult, RegisterResult as _RegisterResult, StudySet as _StudySet, UserProfile as _UserProfile } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async askGemini(arg0: Array<ChatMessage>, arg1: string): Promise<AskGeminiResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.askGemini(arg0, arg1);
+                return from_candid_AskGeminiResult_n1(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.askGemini(arg0, arg1);
+            return from_candid_AskGeminiResult_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async createDeck(arg0: FlashcardDeckInput): Promise<FlashcardDeck> {
         if (this.processError) {
             try {
@@ -261,42 +317,42 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getDeck(arg0);
-                return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getDeck(arg0);
-            return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getProfile(): Promise<UserProfile | null> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getProfile();
-                return from_candid_opt_n2(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getProfile();
-            return from_candid_opt_n2(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getStudySet(arg0: ResourceId): Promise<StudySet | null> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getStudySet(arg0);
                 return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getStudySet(arg0);
+            const result = await this.actor.getDeck(arg0);
             return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getProfile(): Promise<UserProfile | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getProfile();
+                return from_candid_opt_n4(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getProfile();
+            return from_candid_opt_n4(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getStudySet(arg0: ResourceId): Promise<StudySet | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getStudySet(arg0);
+                return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getStudySet(arg0);
+            return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
         }
     }
     async listDecks(): Promise<Array<FlashcardDeck>> {
@@ -355,32 +411,74 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateDeck(arg0: ResourceId, arg1: FlashcardDeckInput): Promise<FlashcardDeck | null> {
+    async login(arg0: string, arg1: string): Promise<LoginResult> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateDeck(arg0, arg1);
-                return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.login(arg0, arg1);
+                return from_candid_LoginResult_n6(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateDeck(arg0, arg1);
-            return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.login(arg0, arg1);
+            return from_candid_LoginResult_n6(this._uploadFile, this._downloadFile, result);
         }
     }
-    async updateStudySet(arg0: ResourceId, arg1: StudySetInput): Promise<StudySet | null> {
+    async logout(): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateStudySet(arg0, arg1);
+                const result = await this.actor.logout();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.logout();
+            return result;
+        }
+    }
+    async register(arg0: string, arg1: string): Promise<RegisterResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.register(arg0, arg1);
+                return from_candid_RegisterResult_n10(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.register(arg0, arg1);
+            return from_candid_RegisterResult_n10(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateDeck(arg0: ResourceId, arg1: FlashcardDeckInput): Promise<FlashcardDeck | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateDeck(arg0, arg1);
                 return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateStudySet(arg0, arg1);
+            const result = await this.actor.updateDeck(arg0, arg1);
             return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateStudySet(arg0: ResourceId, arg1: StudySetInput): Promise<StudySet | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateStudySet(arg0, arg1);
+                return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateStudySet(arg0, arg1);
+            return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
         }
     }
     async upsertProfile(arg0: UserProfileInput): Promise<UserProfile> {
@@ -398,14 +496,99 @@ export class Backend implements backendInterface {
         }
     }
 }
-function from_candid_opt_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_FlashcardDeck]): FlashcardDeck | null {
+function from_candid_AskGeminiResult_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AskGeminiResult): AskGeminiResult {
+    return from_candid_variant_n2(_uploadFile, _downloadFile, value);
+}
+function from_candid_AuthError_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AuthError): AuthError {
+    return from_candid_variant_n9(_uploadFile, _downloadFile, value);
+}
+function from_candid_LoginResult_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LoginResult): LoginResult {
+    return from_candid_variant_n7(_uploadFile, _downloadFile, value);
+}
+function from_candid_RegisterResult_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _RegisterResult): RegisterResult {
+    return from_candid_variant_n7(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_FlashcardDeck]): FlashcardDeck | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+function from_candid_opt_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_StudySet]): StudySet | null {
+function from_candid_opt_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_StudySet]): StudySet | null {
     return value.length === 0 ? null : value[0];
+}
+function from_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: string;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: null;
+} | {
+    err: _AuthError;
+}): {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: AuthError;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: from_candid_AuthError_n8(_uploadFile, _downloadFile, value.err)
+    } : value;
+}
+function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    EmailAlreadyExists: null;
+} | {
+    InvalidCredentials: null;
+} | {
+    NotAuthenticated: null;
+} | {
+    InternalError: string;
+}): {
+    __kind__: "EmailAlreadyExists";
+    EmailAlreadyExists: null;
+} | {
+    __kind__: "InvalidCredentials";
+    InvalidCredentials: null;
+} | {
+    __kind__: "NotAuthenticated";
+    NotAuthenticated: null;
+} | {
+    __kind__: "InternalError";
+    InternalError: string;
+} {
+    return "EmailAlreadyExists" in value ? {
+        __kind__: "EmailAlreadyExists",
+        EmailAlreadyExists: value.EmailAlreadyExists
+    } : "InvalidCredentials" in value ? {
+        __kind__: "InvalidCredentials",
+        InvalidCredentials: value.InvalidCredentials
+    } : "NotAuthenticated" in value ? {
+        __kind__: "NotAuthenticated",
+        NotAuthenticated: value.NotAuthenticated
+    } : "InternalError" in value ? {
+        __kind__: "InternalError",
+        InternalError: value.InternalError
+    } : value;
 }
 export interface CreateActorOptions {
     agent?: Agent;

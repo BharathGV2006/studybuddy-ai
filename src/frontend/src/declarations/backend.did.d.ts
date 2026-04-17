@@ -17,6 +17,13 @@ export interface AnalyticsSummary {
   'aiAssistedSeconds' : bigint,
   'totalSessions' : bigint,
 }
+export type AskGeminiResult = { 'ok' : string } |
+  { 'err' : string };
+export type AuthError = { 'EmailAlreadyExists' : null } |
+  { 'InvalidCredentials' : null } |
+  { 'NotAuthenticated' : null } |
+  { 'InternalError' : string };
+export interface ChatMessage { 'content' : string, 'role' : string }
 export interface Flashcard {
   'id' : ResourceId,
   'question' : string,
@@ -36,12 +43,16 @@ export interface FlashcardDeckInput {
   'subject' : string,
   'cards' : Array<Flashcard>,
 }
+export type LoginResult = { 'ok' : null } |
+  { 'err' : AuthError };
 export interface QuizQuestion {
   'id' : ResourceId,
   'question' : string,
   'correctIndex' : bigint,
   'options' : Array<string>,
 }
+export type RegisterResult = { 'ok' : null } |
+  { 'err' : AuthError };
 export type ResourceId = bigint;
 export interface StudySession {
   'id' : ResourceId,
@@ -89,6 +100,7 @@ export interface UserProfileInput {
   'studyGoals' : Array<string>,
 }
 export interface _SERVICE {
+  'askGemini' : ActorMethod<[Array<ChatMessage>, string], AskGeminiResult>,
   'createDeck' : ActorMethod<[FlashcardDeckInput], FlashcardDeck>,
   'createStudySet' : ActorMethod<[StudySetInput], StudySet>,
   'deleteDeck' : ActorMethod<[ResourceId], boolean>,
@@ -101,6 +113,9 @@ export interface _SERVICE {
   'listSessions' : ActorMethod<[], Array<StudySession>>,
   'listStudySets' : ActorMethod<[], Array<StudySet>>,
   'logSession' : ActorMethod<[StudySessionInput], StudySession>,
+  'login' : ActorMethod<[string, string], LoginResult>,
+  'logout' : ActorMethod<[], undefined>,
+  'register' : ActorMethod<[string, string], RegisterResult>,
   'updateDeck' : ActorMethod<
     [ResourceId, FlashcardDeckInput],
     [] | [FlashcardDeck]
