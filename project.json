@@ -1,0 +1,24 @@
+{
+  "overview": "A high-fidelity study platform with an AI tutor sidebar, learning analytics, smart resource cards, mobile flashcards, smart search, and a guided onboarding flow — all wrapped in a sleek dark mode design with glassmorphism and indigo accents.",
+  "features": [
+    "AI tutor sidebar with chat, code blocks, and LaTeX rendering",
+    "Learning analytics with progress rings and AI vs. solo hours comparison chart",
+    "Smart resource cards grid with AI summary snippets and quiz generation",
+    "Mobile-optimized flashcard module with card-flip animation",
+    "Smart search with AI Search, Find Buddies, and Browse Notes modes",
+    "3-step onboarding flow with AI mascot guide",
+    "Split-pane dashboard with navigation rail",
+    "Dark mode design system with Inter font, glassmorphism, and soft indigo accents"
+  ],
+  "category": "productivity",
+  "tags": [
+    "study",
+    "ai-tutor",
+    "flashcards",
+    "analytics",
+    "dark-mode",
+    "glassmorphism",
+    "learning"
+  ],
+  "last_updated": "2026-04-17T15:14:49.373Z"
+}

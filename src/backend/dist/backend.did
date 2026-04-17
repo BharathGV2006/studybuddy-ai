@@ -1,0 +1,107 @@
+type UserProfileInput = 
+ record {
+   name: text;
+   onboardingComplete: bool;
+   studyGoals: vec text;
+ };
+type UserProfile = 
+ record {
+   createdAt: Timestamp;
+   name: text;
+   onboardingComplete: bool;
+   owner: UserId;
+   studyGoals: vec text;
+   updatedAt: Timestamp;
+ };
+type UserId = principal;
+type Timestamp = int;
+type StudySetInput = 
+ record {
+   aiSummary: text;
+   quizQuestions: vec QuizQuestion;
+   subject: text;
+   title: text;
+ };
+type StudySet = 
+ record {
+   aiSummary: text;
+   createdAt: Timestamp;
+   id: ResourceId;
+   owner: UserId;
+   quizQuestions: vec QuizQuestion;
+   subject: text;
+   title: text;
+   updatedAt: Timestamp;
+ };
+type StudySessionInput = 
+ record {
+   aiAssisted: bool;
+   durationSeconds: nat;
+   startedAt: Timestamp;
+   subject: text;
+ };
+type StudySession = 
+ record {
+   aiAssisted: bool;
+   durationSeconds: nat;
+   id: ResourceId;
+   owner: UserId;
+   startedAt: Timestamp;
+   subject: text;
+ };
+type ResourceId = nat;
+type QuizQuestion = 
+ record {
+   correctIndex: nat;
+   id: ResourceId;
+   options: vec text;
+   question: text;
+ };
+type FlashcardDeckInput = 
+ record {
+   cards: vec Flashcard;
+   subject: text;
+   title: text;
+ };
+type FlashcardDeck = 
+ record {
+   cards: vec Flashcard;
+   createdAt: Timestamp;
+   id: ResourceId;
+   owner: UserId;
+   subject: text;
+   title: text;
+   updatedAt: Timestamp;
+ };
+type Flashcard = 
+ record {
+   answer: text;
+   id: ResourceId;
+   question: text;
+ };
+type AnalyticsSummary = 
+ record {
+   aiAssistedSeconds: nat;
+   sessions: vec StudySession;
+   soloSeconds: nat;
+   totalDurationSeconds: nat;
+   totalSessions: nat;
+ };
+service : {
+  createDeck: (input: FlashcardDeckInput) -> (FlashcardDeck);
+  createStudySet: (input: StudySetInput) -> (StudySet);
+  deleteDeck: (id: ResourceId) -> (bool);
+  deleteStudySet: (id: ResourceId) -> (bool);
+  getAnalyticsSummary: () -> (AnalyticsSummary) query;
+  getDeck: (id: ResourceId) -> (opt FlashcardDeck) query;
+  getProfile: () -> (opt UserProfile) query;
+  getStudySet: (id: ResourceId) -> (opt StudySet) query;
+  listDecks: () -> (vec FlashcardDeck) query;
+  listSessions: () -> (vec StudySession) query;
+  listStudySets: () -> (vec StudySet) query;
+  logSession: (input: StudySessionInput) -> (StudySession);
+  updateDeck: (id: ResourceId, input: FlashcardDeckInput) ->
+   (opt FlashcardDeck);
+  updateStudySet: (id: ResourceId, input: StudySetInput) -> (opt StudySet);
+  upsertProfile: (input: UserProfileInput) -> (UserProfile);
+}
